@@ -13,7 +13,7 @@ ball_movements = []
 frame_count = 0
 still_frame_count = 0
 capture_duration = 120
-still_duration = 180  # time tracked ball must be still for  
+still_duration = 120  # time tracked ball must be still for  
 ready = False
 moving = False
 waiting_for_reset = False
@@ -78,16 +78,11 @@ def draw_ball_outline(img, x, y, radius, rgb):
     cv2.circle(img, (x, y), radius, rgb, 2)
 
 def trace_movements(img, movements):
+    print(f'movements recorded: {len(movements)}')
     for (x, y, radius) in movements:
         cv2.circle(img, (x, y), radius, (0, 0, 255), 2)
         cv2.imshow("Replay", img)
-        cv2.waitKey(15) 
-
-        img_copy = img.copy()
-        cv2.circle(img_copy, (x, y), radius, (0, 0, 0), -1)
-        img = img_copy.copy()
-        cv2.imshow("Replay", img)
-        cv2.waitKey(15)  
+        cv2.waitKey(30) 
 
     cv2.destroyWindow("Replay")
 
@@ -110,12 +105,12 @@ def capture_video():
                     prev_ball_x, prev_ball_y, prev_ball_radius = prev_ball[0][0], prev_ball[0][1], prev_ball[1] 
                     
                     # if it detects another circle somewhere else, don't want that to count
-                    max_x_displacement = (ball_radius * 2) 
-                    max_y_displacement = (ball_radius * 2)
+                    max_x_displacement = (ball_radius * 5) 
+                    max_y_displacement = (ball_radius * 5)
                     
                     # if it redraws the circle in a slightly different position, also don't want that to count
-                    min_x_displacement = (ball_radius * 0.15)
-                    min_y_displacement = (ball_radius * 0.15)
+                    min_x_displacement = (ball_radius * 0.1)
+                    min_y_displacement = (ball_radius * 0.1)
                     x_displacement = abs(prev_ball_x - ball_x)
                     y_displacement = abs(prev_ball_y - ball_y)
                     max_radius_difference = 15
@@ -153,7 +148,6 @@ def capture_video():
 
             if frame_count < capture_duration and moving and not waiting_for_reset:  # increase even if ball isn't detected
                 frame_count += 1 
-                print(f'frame_count: {frame_count}')
 
             if frame_count >= capture_duration:
                 waiting_for_reset = True
@@ -173,7 +167,14 @@ def capture_video():
 
 @app.get('/')
 async def root():
-    return {"status": moving, "movements": ball_movements}
+    global moving # not sure if I even really need this
+    response = {
+        "status": moving,
+        "movements": [
+            {"x": x, "y": y, "radius": radius} for (x, y, radius) in ball_movements
+        ]
+    }
+    return JSONResponse(content=response)
 
 @app.get('/reset')
 async def reset():

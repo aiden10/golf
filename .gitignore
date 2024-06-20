@@ -1,1 +1,3 @@
 virtual/
+sim/golfsim/*
+!/sim/golfsim/Assets/
