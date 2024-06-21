@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -55,6 +56,7 @@ public class BallMovementFetcher : MonoBehaviour
                     else
                     {
                         Debug.Log("Successfully reset. Ball is ready to be tracked");
+                        didMove = false;
                     }
                 }
             }
@@ -69,12 +71,9 @@ public class BallMovementFetcher : MonoBehaviour
         MovementData data = JsonUtility.FromJson<MovementData>(json);
         if (data.movements.Count > 0)
         {
-            foreach (var move in data.movements)
-            {
-                // Set the new target position for the ball
-                Debug.Log($"Applying movement: x={move.x}, y={move.y}, radius={move.radius}");
-                targetPosition = new Vector3(move.x, 0, move.y); // Assuming 2D movement
-            }
+            Movement move = data.movements.Last(); // move to position of last movement (for now)
+            Debug.Log($"Applying movement: x={move.x}, y={move.y}, radius={move.radius}");
+            targetPosition = new Vector3(move.x, 0, move.y); // Assuming 2D movement
             return true;
         }
         return false;

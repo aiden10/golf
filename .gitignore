@@ -1,3 +1,4 @@
 virtual/
 sim/golfsim/*
+sim/golfsim/Assets/SimpleLowPolyNature*
 !/sim/golfsim/Assets/
