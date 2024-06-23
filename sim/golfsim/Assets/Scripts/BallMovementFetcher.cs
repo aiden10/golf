@@ -1,15 +1,29 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using SimpleJSON;
 using UnityEngine;
 using UnityEngine.Networking;
-
+/*
+ * Unity Side:
+ * Make ball lose speed
+ * Wait for ball to lose speed before sending the reset request
+ * Add a mini golf course with a hole
+ * Stroke count
+ * 
+ * Python Side:
+ * TTS for: 
+ * when the ball is ready to hit 
+ * when the ball is hit and starts to be tracked
+ * when the ball goes from ready to not detected
+*/
 public class BallMovementFetcher : MonoBehaviour
 {
     public string MovementURL = "http://localhost:8000";
     public string ResetURL = "http://localhost:8000/reset";
     public Rigidbody ballRigidbody;
     public float movementSpeed = 1.0f; // Control the speed of the movement
+    public float forceScale = 200f; // Adjust this value to increase/decrease the force
 
     private Vector3 targetPosition;
 
@@ -20,14 +34,12 @@ public class BallMovementFetcher : MonoBehaviour
             Debug.LogError("Rigidbody not assigned.");
             return;
         }
+        ballRigidbody.velocity = Vector3.zero;
+        ballRigidbody.angularVelocity = Vector3.zero;
+
+        ballRigidbody.constraints = RigidbodyConstraints.FreezePositionX | RigidbodyConstraints.FreezePositionZ | RigidbodyConstraints.FreezeRotation;
         targetPosition = ballRigidbody.position;
         StartCoroutine(FetchMovements());
-    }
-
-    void Update()
-    {
-        // Gradually move the ball towards the target position
-        ballRigidbody.position = Vector3.Lerp(ballRigidbody.position, targetPosition, movementSpeed * Time.deltaTime);
     }
 
     IEnumerator FetchMovements()
@@ -48,7 +60,7 @@ public class BallMovementFetcher : MonoBehaviour
                 {
                     // Send reset request
                     UnityWebRequest resetRequest = UnityWebRequest.Get(ResetURL);
-                    yield return resetRequest.SendWebRequest();
+                    yield return resetRequest.SendWebRequest(); // should update this to reset when the ball has stopped moving
                     if (resetRequest.result == UnityWebRequest.Result.ConnectionError || resetRequest.result == UnityWebRequest.Result.ProtocolError)
                     {
                         Debug.LogError(resetRequest.error);
@@ -65,32 +77,58 @@ public class BallMovementFetcher : MonoBehaviour
         }
     }
 
-    bool ProcessMovements(string json)
+    bool ProcessMovements(string jsonString)
     {
-        Debug.Log("Processing movements JSON: " + json);
-        MovementData data = JsonUtility.FromJson<MovementData>(json);
-        if (data.movements.Count > 0)
+        var json = JSON.Parse(jsonString);
+        if (json == null)
         {
-            Movement move = data.movements.Last(); // move to position of last movement (for now)
-            Debug.Log($"Applying movement: x={move.x}, y={move.y}, radius={move.radius}");
-            targetPosition = new Vector3(move.x, 0, move.y); // Assuming 2D movement
+            Debug.LogError("Failed to parse JSON");
+            return false;
+        }
+
+        float speed = json["status"]["speed"].AsFloat;
+        string direction = json["status"]["direction"][0];
+        float angle = json["status"]["angle"].AsFloat;
+        float rise = json["status"]["rise"].AsFloat;
+        if (speed != 0 && direction != "None" && angle != 0 && rise != 0) // non default values so ball has actually moved 
+        {
+            Debug.Log($"Speed: {speed}, Direction: {direction}, Angle: {angle}, Rise: {rise}");
+            MoveBall(direction, speed, angle, rise);
             return true;
         }
         return false;
     }
 
-    [System.Serializable]
-    public class Movement
+    void MoveBall(string direction, float speed, float angle, float rise)
     {
-        public float x;
-        public float y;
-        public float radius;
-    }
-
-    [System.Serializable]
-    public class MovementData
-    {
-        public bool status;
-        public List<Movement> movements;
+        Vector3 force = Vector3.zero;
+        // Convert direction string to vector
+        switch (direction.ToLower())
+        {
+            case "up":
+                force = Vector3.forward;
+                break;
+            case "down":
+                force = Vector3.back;
+                break;
+            case "left":
+                force = Vector3.left;
+                break;
+            case "right":
+                force = Vector3.right;
+                break;
+        }
+        force = Quaternion.Euler(0, angle, 0) * force;
+        force *= speed  * forceScale;
+        force.y = rise * (forceScale / 2);
+        Debug.Log($"Force: {force}");
+        Debug.Log($"Ball position before applying force: {ballRigidbody.position}");
+        // Move the ball
+        ballRigidbody.constraints = RigidbodyConstraints.None;
+        // reset velocity
+        // ballRigidbody.velocity = Vector3.zero; 
+        // ballRigidbody.angularVelocity = Vector3.zero;
+        ballRigidbody.AddForce(force, ForceMode.Impulse);
+        Debug.Log($"Ball position after applying force: {ballRigidbody.position}");
     }
 }

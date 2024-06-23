@@ -1,12 +1,12 @@
 using UnityEngine;
-
+// clicking should lock/unlock the camera rotation
 public class CameraController : MonoBehaviour
 {
     public Transform target; // Reference to the ball's transform
     public Vector3 offset; // Offset from the ball's position
     public float smoothSpeed = 0.125f; // Smoothness of camera movement
 
-    public float rotationSpeed = 5.0f; // Speed of camera rotation
+    public float rotationSpeed = 3.0f; // Speed of camera rotation
     private float yaw = 0.0f; // Yaw angle for horizontal rotation
     private float pitch = 0.0f; // Pitch angle for vertical rotation
 
