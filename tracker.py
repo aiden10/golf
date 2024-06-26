@@ -131,8 +131,8 @@ def capture_video():
                     prev_ball_x, prev_ball_y, prev_ball_radius = prev_ball[0][0], prev_ball[0][1], prev_ball[1] 
                     
                     # if it detects another circle somewhere else, don't want that to count
-                    max_x_displacement = (ball_radius * 10) # with good tracking this almost isn't needed
-                    max_y_displacement = (ball_radius * 10)
+                    max_x_displacement = (ball_radius * 100) # with good tracking this almost isn't needed
+                    max_y_displacement = (ball_radius * 100)
                     
                     # if it redraws the circle in a slightly different position, also don't want that to count
                     # instead of just comparing the previous ball position, I could try comparing the previous n positions
