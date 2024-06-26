@@ -49,7 +49,7 @@ public class CameraController : MonoBehaviour
         {
             // Adjust the active ball's direction when the camera is locked and the mouse moves
             yaw += Input.GetAxis("Mouse X") * rotationSpeed;
-            target.GetComponent<Ball>().forwardDirection = yaw;
+            target.GetComponent<Ball>().data.forwardDirection = yaw;
         }
     }
 

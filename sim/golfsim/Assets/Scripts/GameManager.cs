@@ -3,10 +3,12 @@ using System.Collections.Generic;
 
 public class GameManager : MonoBehaviour
 {
-    public static GameManager Instance { get; private set; }
-    private List<Ball> playerBalls;
+    // Singleton instance
+    public static GameManager Instance { get; set; }
 
-    private void Awake()
+    private List<BallData> playerBallDataList = new List<BallData>();
+
+    void Awake()
     {
         if (Instance == null)
         {
@@ -19,13 +21,13 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void SetPlayerBalls(List<Ball> balls)
+    public void SetPlayerBallData(List<BallData> ballDataList)
     {
-        playerBalls = balls;
+        playerBallDataList = ballDataList;
     }
 
-    public List<Ball> GetPlayerBalls()
+    public List<BallData> GetPlayerBallData()
     {
-        return playerBalls;
+        return playerBallDataList;
     }
 }

@@ -14,56 +14,64 @@ Audio for:
   
 TODO:
     Add starting position and hole to each course
-    
+    Fix error with 'new' keyword
+    Make remove button remove its prefab 
+    Make sure that the balls are being created properly after the course loads
+    Switch camera to track the active ball after the course loads
+    Display the player names over their ball 
+    Display the directional arrow under each ball
+    Game over overlay which displays the strokes of each player and has a button to go back to the menu scene
 */
 public class Main : MonoBehaviour
 {
-    private List<Ball> activeBalls; // how is this going to be called and how is the ball list going to be passed in?
-    private List<Ball> finishedBalls;
+    public List<Ball> activeBalls; // how is this going to be called and how is the ball list going to be passed in?
+    public List<Ball> finishedBalls;
     private Scene course;
     public string MovementURL = "http://localhost:8000";
     public string ResetURL = "http://localhost:8000/reset";
     public float forceScale = 1000f;
     public CameraController cameraController;
+    public GameObject ballPrefab;
     private Ball activeBall;
     private Course currentCourse;
     void Start()
     {
-        activeBalls = GameManager.Instance.GetPlayerBalls();
-        if (activeBalls == null || activeBalls.Count == 0)
+        List<BallData> playerBallDataList = GameManager.Instance.GetPlayerBallData();
+        if (playerBallDataList == null || playerBallDataList.Count == 0)
         {
             Debug.LogError("No player balls found!");
             return;
         }
 
-        currentCourse = FindObjectOfType<Course>();
+        currentCourse = FindObjectOfType<Course>(); // initialize the course by finding the Course object in the scene
         if (currentCourse == null)
         {
             Debug.LogError("No Course object found in the scene!");
             return;
         }
 
-        foreach (Ball ball in activeBalls)
+        foreach (BallData ballData in playerBallDataList)
         {
-            ball.ballBody.transform.position = currentCourse.startLocation;
-            ball.ballBody.isKinematic = true;
-            ball.GetComponent<Renderer>().material.color = ball.color;
+            GameObject ballObject = Instantiate(ballPrefab, currentCourse.startLocation, Quaternion.identity);
+            Ball ball = ballObject.GetComponent<Ball>();
+            ball.Initialize(ballData);
+            activeBalls.Add(ball);
         }
         int randomIndex = Random.Range(0, activeBalls.Count);
         activeBall = activeBalls[randomIndex];
-        activeBall.isTurn = true;
+        activeBall.data.isTurn = true;
         activeBall.ballBody.isKinematic = false;
     }
 
     void updateActiveBall()
         // call this after the ball has been hit and stops moving
     {
-        activeBall.isTurn = false;
+        activeBall.data.isTurn = false;
         int index = activeBalls.IndexOf(activeBall);
         if (index != -1)
         {
             activeBall = activeBalls[(index + 1) % activeBalls.Count];
-            activeBall.isTurn = true;
+            activeBall.data.isTurn = true;
             cameraController.SetTarget(activeBall.transform); 
         }
     }
@@ -140,7 +148,7 @@ public class Main : MonoBehaviour
     }
     bool isBallInHole()
     {
-        float distanceToHole = Vector3.Distance(activeBall.transform.position, currentCourse.hole.transform.position);
+        float distanceToHole = Vector3.Distance(activeBall.transform.position, currentCourse.hole);
         return distanceToHole < 0.5f; // Adjust the threshold based on the size of the hole
 
     }
@@ -174,15 +182,15 @@ public class Main : MonoBehaviour
         // activeBall.ballBody.velocity = Vector3.zero; 
         // activeBall.ballBody.angularVelocity = Vector3.zero;
         activeBall.ballBody.AddForce(force, ForceMode.Impulse);
-        activeBall.strokes++;
+        activeBall.data.strokes++;
     }
     void displayWinners()
         // call when activeBalls is empty
     {
-        finishedBalls = finishedBalls.OrderBy(ball => ball.strokes).ToList(); // sort the balls by stroke order
+        finishedBalls = finishedBalls.OrderBy(ball => ball.data.strokes).ToList(); // sort the balls by stroke order
         foreach (var ball in finishedBalls)
         {
-            Debug.Log($"{ball.playerName} - Strokes: {ball.strokes}");
+            Debug.Log($"{ball.data.playerName} - Strokes: {ball.data.strokes}");
         }
         // draw overlay which displays the players and their stroke counts
 

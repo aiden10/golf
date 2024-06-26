@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using TMPro;
 
 public class MenuController : MonoBehaviour
-{
+{ 
     public Transform courseListContent; // Parent transform for course buttons
     public GameObject playerConfigPanel; // Panel for player configuration
     public GameObject playerConfigPrefab; // Prefab for player configuration entries
@@ -16,7 +16,7 @@ public class MenuController : MonoBehaviour
     public Button course2Button;
     private int playerCount = 0; // Counter for player entries
     private int sceneIndex = 0;
-    private List<Ball> playerBalls = new List<Ball>(); // List of player balls
+    private List<BallData> playerBallDataList = new List<BallData>();
 
     private void Start()
     {
@@ -85,29 +85,36 @@ public class MenuController : MonoBehaviour
             Debug.LogError("Scene index is not set!");
             return;
         }
-        playerBalls.Clear();
+        playerBallDataList.Clear();
         foreach (Transform child in playerConfigContent)
         {
             TMP_InputField playerNameInput = child.Find("Name Field").GetComponent<TMP_InputField>();
-            TMP_InputField colorPicker = child.Find("Color Field").GetComponent<TMP_InputField>(); 
-            string playerName = playerNameInput.text;
-            string hexColor = colorPicker.text;
-            Color playerColor;
-            ColorUtility.TryParseHtmlString(hexColor, out playerColor);
+            TMP_InputField colorPicker = child.Find("Color Field").GetComponent<TMP_InputField>();
 
-            Ball playerBall = new Ball
+            if (playerNameInput != null && colorPicker != null)
             {
-                playerName = playerName,
-                color = playerColor,
-                strokes = 0,
-                forwardDirection = 0.0f
-            };
+                string playerName = playerNameInput.text;
+                string hexColor = colorPicker.text;
 
-            playerBalls.Add(playerBall);
+                if (ColorUtility.TryParseHtmlString(hexColor, out Color playerColor))
+                {
+                    // Instantiate the Ball prefab and configure its properties
+                    BallData playerBallData = new BallData
+                    {
+                        playerName = playerName,
+                        color = playerColor,
+                        strokes = 0,
+                        forwardDirection = 0.0f
+                    };
+                    playerBallDataList.Add(playerBallData);
+                }
+                else
+                {
+                    Debug.LogError($"Invalid color code: {hexColor}");
+                }
+            }
         }
-
-        GameManager.Instance.SetPlayerBalls(playerBalls);
-
+        GameManager.Instance.SetPlayerBallData(playerBallDataList);
         SceneManager.LoadScene(sceneIndex);
     }
 }

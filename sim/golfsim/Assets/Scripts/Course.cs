@@ -2,15 +2,17 @@ using UnityEngine;
 
 public class Course : MonoBehaviour
 {
-    // assign these properties to those in the scene
-    public Vector3 startLocation;
-    public GameObject hole;
+    public Vector3 startLocation; // Start location of the course
+    public Vector3 hole; // Position of the hole
 
-    void Start()
+    private void OnDrawGizmos()
     {
-        if (hole == null)
-        {
-            Debug.LogError("Hole object is not assigned");
-        }
+        // Draw a sphere at the start location for visualization
+        Gizmos.color = Color.green;
+        Gizmos.DrawSphere(startLocation, 0.5f);
+
+        // Draw a sphere at the hole position for visualization
+        Gizmos.color = Color.red;
+        Gizmos.DrawSphere(hole, 0.5f);
     }
 }
