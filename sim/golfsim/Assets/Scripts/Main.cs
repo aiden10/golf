@@ -13,13 +13,14 @@ Audio for:
     When the ball goes from ready to not detected
   
 TODO:
-    Add starting position and hole to each course
-    Fix error with 'new' keyword
-    Make remove button remove its prefab 
-    Make sure that the balls are being created properly after the course loads
-    Switch camera to track the active ball after the course loads
-    Display the player names over their ball 
+    Add starting position and hole to each course x
+    Fix error with 'new' keyword x
+    Make remove button remove its prefab  x
+    Make sure that the balls are being created properly after the course loads x
+    Switch camera to track the active ball after the course loads x
+    Display the player names over their ball x
     Display the directional arrow under each ball
+    Add hole to the course
     Game over overlay which displays the strokes of each player and has a button to go back to the menu scene
 */
 public class Main : MonoBehaviour
@@ -34,8 +35,20 @@ public class Main : MonoBehaviour
     public GameObject ballPrefab;
     private Ball activeBall;
     private Course currentCourse;
+    private Camera cam;
+    void OnGUI()
+    {
+        foreach(Ball ball in activeBalls)
+        {
+            Vector3 ballScreenPos = cam.WorldToScreenPoint(ball.transform.position);
+            ballScreenPos.y = Screen.height - ballScreenPos.y;
+            GUI.Label(new Rect(ballScreenPos.x, ballScreenPos.y, 100, 20), ball.data.playerName);
+        }
+    }
+
     void Start()
     {
+        cam = Camera.main;
         List<BallData> playerBallDataList = GameManager.Instance.GetPlayerBallData();
         if (playerBallDataList == null || playerBallDataList.Count == 0)
         {
@@ -60,7 +73,9 @@ public class Main : MonoBehaviour
         int randomIndex = Random.Range(0, activeBalls.Count);
         activeBall = activeBalls[randomIndex];
         activeBall.data.isTurn = true;
+        Debug.Log($"Active Ball: {activeBall.data.playerName}");
         activeBall.ballBody.isKinematic = false;
+        cameraController.SetTarget(activeBall.transform);
     }
 
     void updateActiveBall()
@@ -72,6 +87,7 @@ public class Main : MonoBehaviour
         {
             activeBall = activeBalls[(index + 1) % activeBalls.Count];
             activeBall.data.isTurn = true;
+            Debug.Log($"New Active Ball: {activeBall.data.playerName}");
             cameraController.SetTarget(activeBall.transform); 
         }
     }
@@ -89,6 +105,7 @@ public class Main : MonoBehaviour
             }
             else
             {
+                Debug.Log("Checking for movements...");
                 bool didMove = ProcessMovements(movementRequest.downloadHandler.text);
                 if (didMove && activeBall.ballBody.velocity.x == 0 && activeBall.ballBody.velocity.y == 0 && activeBall.ballBody.velocity.z == 0) // wait for ball to stop moving before reseting
                 {
@@ -126,6 +143,7 @@ public class Main : MonoBehaviour
     }
 
     bool ProcessMovements(string jsonString)
+        // Parses JSON and extracts ball info
     {
         var json = JSON.Parse(jsonString);
         if (json == null)
@@ -147,12 +165,14 @@ public class Main : MonoBehaviour
         return false;
     }
     bool isBallInHole()
+        // Check if ball is close enough to hole
     {
-        float distanceToHole = Vector3.Distance(activeBall.transform.position, currentCourse.hole);
-        return distanceToHole < 0.5f; // Adjust the threshold based on the size of the hole
+        float distanceToHole = Vector3.Distance(activeBall.transform.position, currentCourse.hole); // Should also check the Z to make sure it's in the hole. Not needed if the course is flat though
+        return distanceToHole < 0.5f; 
 
     }
     void MoveBall(string direction, float speed, float angle, float rise)
+        // Applies forces
     {
         Vector3 force = Vector3.zero;
         // Convert direction string to vector

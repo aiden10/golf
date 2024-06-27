@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public class GameManager : MonoBehaviour
 {
-    // Singleton instance
+    // Singleton instance for transfering data between scenes
     public static GameManager Instance { get; set; }
 
     private List<BallData> playerBallDataList = new List<BallData>();

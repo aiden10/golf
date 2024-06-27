@@ -6,36 +6,38 @@ using TMPro;
 
 public class MenuController : MonoBehaviour
 { 
-    public Transform courseListContent; // Parent transform for course buttons
-    public GameObject playerConfigPanel; // Panel for player configuration
-    public GameObject playerConfigPrefab; // Prefab for player configuration entries
-    public Transform playerConfigContent; // Parent transform for player configuration entries
-    public Button startGameButton; // Button to start the game
-    public Button addPlayerButton; // Button to add a player
+    // References to the UI elements
+    public Transform courseListContent; 
+    public GameObject playerConfigPanel; 
+    public GameObject playerConfigPrefab;
+    public Transform playerConfigContent;
+    public Button startGameButton; 
+    public Button addPlayerButton; 
     public Button course1Button;
     public Button course2Button;
-    private int playerCount = 0; // Counter for player entries
+
+    private int playerCount = 0; 
     private int sceneIndex = 0;
     private List<BallData> playerBallDataList = new List<BallData>();
 
     private void Start()
     {
-
+        // Set button events
         course1Button.onClick.AddListener(() => SetSceneIndex(1));
         course2Button.onClick.AddListener(() => SetSceneIndex(2));
 
         course1Button.onClick.AddListener(() => OnCourseSelected());
         course2Button.onClick.AddListener(() => OnCourseSelected());
         
-        startGameButton.onClick.AddListener(StartGame); // Add listener to start game button
-        addPlayerButton.onClick.AddListener(AddPlayerConfig); // Add listener to add player button
+        startGameButton.onClick.AddListener(StartGame); 
+        addPlayerButton.onClick.AddListener(AddPlayerConfig); 
         playerConfigPanel.SetActive(false); // Initially hide player config panel
     }
 
     private void OnCourseSelected()
     {
         playerConfigPanel.SetActive(true); // Show player config panel
-        ClearPlayerConfigs(); // Clear any existing player configs
+        ClearPlayerConfigs(); // This actually isn't necessary now that I think about it. But I'll leave it anyways
         AddPlayerConfig(); // Add initial player config entry
     }
 
@@ -45,76 +47,65 @@ public class MenuController : MonoBehaviour
         Debug.Log("Selected scene index: " + sceneIndex);
     }
 
-    public void AddPlayerConfig()
+    public void AddPlayerConfig() // Adds a player config prefab to the canvas
     {
         GameObject playerConfig = Instantiate(playerConfigPrefab, playerConfigContent);
+        Button removeButton = playerConfig.transform.Find("Remove Button").GetComponent<Button>();
+        removeButton.onClick.AddListener(() => RemovePlayerConfig(playerConfig));
         playerCount++;
     }
 
     public void RemovePlayerConfig(GameObject playerConfig)
     {
-        Destroy(playerConfig);
+        Destroy(playerConfig); // Destroys the prefab it's passed
         playerCount--;
     }
 
-    private void ClearPlayerConfigs()
+    private void ClearPlayerConfigs() // Gets rid of all the player config prefabs. In hindsight, this doesn't actually need to exist
     {
-        if (playerConfigContent == null)
-        {
-            Debug.LogError("playerConfigContent is not assigned!");
-            return;
-        }
-
         foreach (Transform child in playerConfigContent)
         {
             Destroy(child.gameObject);
         }
         playerCount = 0;
     }
+    
+    private Color parseHexColor(string hexCode) // Tries to parse the hex code, if it's not valid it returns white
+    { // Idealy I'd use a color wheel but that would be more UI work I don't want to do
+        if (ColorUtility.TryParseHtmlString(hexCode, out Color color))
+        {
+            return color;
+        }
+        else
+        {
+            return Color.white; // default
+        }
+    }
 
-    private void StartGame()
+    private void StartGame() 
     {
-        if (playerConfigContent == null)
+        playerBallDataList.Clear(); // Clear any preexisting data to be safe
+        foreach (Transform child in playerConfigContent) 
         {
-            Debug.LogError("playerConfigContent is not assigned!");
-            return;
-        }
-
-        if (sceneIndex < 0)
-        {
-            Debug.LogError("Scene index is not set!");
-            return;
-        }
-        playerBallDataList.Clear();
-        foreach (Transform child in playerConfigContent)
-        {
+            // Get the data from the text fields
             TMP_InputField playerNameInput = child.Find("Name Field").GetComponent<TMP_InputField>();
             TMP_InputField colorPicker = child.Find("Color Field").GetComponent<TMP_InputField>();
 
-            if (playerNameInput != null && colorPicker != null)
+            string playerName = playerNameInput.text;
+            string hexColor = colorPicker.text;
+            Color playerColor = parseHexColor(hexColor);
+            
+            // Instantiate the Ball prefab and configure its properties
+            BallData playerBallData = new BallData // Create the ball data object
             {
-                string playerName = playerNameInput.text;
-                string hexColor = colorPicker.text;
-
-                if (ColorUtility.TryParseHtmlString(hexColor, out Color playerColor))
-                {
-                    // Instantiate the Ball prefab and configure its properties
-                    BallData playerBallData = new BallData
-                    {
-                        playerName = playerName,
-                        color = playerColor,
-                        strokes = 0,
-                        forwardDirection = 0.0f
-                    };
-                    playerBallDataList.Add(playerBallData);
-                }
-                else
-                {
-                    Debug.LogError($"Invalid color code: {hexColor}");
-                }
-            }
+                playerName = playerName,
+                color = playerColor,
+                strokes = 0,
+                forwardDirection = 0.0f
+            };
+            playerBallDataList.Add(playerBallData); 
         }
-        GameManager.Instance.SetPlayerBallData(playerBallDataList);
-        SceneManager.LoadScene(sceneIndex);
+        GameManager.Instance.SetPlayerBallData(playerBallDataList); // Store it in the singleton class 
+        SceneManager.LoadScene(sceneIndex); // Load the course
     }
 }
