@@ -9,7 +9,7 @@ public class Course : MonoBehaviour
     {
         // Draw a sphere at the start location for visualization
         Gizmos.color = Color.green;
-        Gizmos.DrawSphere(startLocation, 0.5f);
+        Gizmos.DrawSphere(startLocation, 0.25f);
 
         // Draw a sphere at the hole position for visualization
         Gizmos.color = Color.red;

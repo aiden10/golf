@@ -4,7 +4,7 @@ public class Ball : MonoBehaviour
 {
     public BallData data = new BallData();
     public Rigidbody ballBody;
-
+    public GameObject arrow;
     private void Awake()
     {
         // Automatically assign the Rigidbody component of the same GameObject to ballBody
@@ -14,6 +14,11 @@ public class Ball : MonoBehaviour
         if (ballBody == null)
         {
             Debug.LogError("No Rigidbody component found on this GameObject!");
+        }
+        if (arrow == null)
+        {
+            arrow = transform.Find("Arrow").gameObject;
+            arrow.transform.position = new Vector3(0.0f, 0.0f, 0.0f); // This moves the arrow to the same position as the ball
         }
     }
 
