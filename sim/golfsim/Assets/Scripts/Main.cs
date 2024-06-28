@@ -80,9 +80,9 @@ public class Main : MonoBehaviour
     {
         foreach (Ball ball in activeBalls)
         {
-            GameObject arrow = ball.transform.Find("Arrow").gameObject;
-            arrow.transform.localPosition = new Vector3(4.0f, -1.0f, 1.0f);
-            arrow.transform.rotation = Quaternion.Euler(90, 0, ball.data.forwardDirection); // Set the arrow rotation to point in the ball direction
+            GameObject arrow = ball.transform.Find("ArrowParent").gameObject;
+            arrow.transform.localPosition = Vector3.zero;
+            arrow.transform.rotation = Quaternion.Euler(0, ball.data.forwardDirection, 0); 
         }
     }
 
@@ -109,8 +109,8 @@ public class Main : MonoBehaviour
         {
             GameObject ballObject = Instantiate(ballPrefab, currentCourse.startLocation, Quaternion.identity);
             Ball ball = ballObject.GetComponent<Ball>();
-            GameObject arrow = ball.transform.Find("Arrow").gameObject;
-            arrow.transform.localPosition = new Vector3(4.0f, -1.0f, 1.0f);
+            GameObject arrow = ball.transform.Find("ArrowParent").gameObject;
+            arrow.transform.localPosition = Vector3.zero;
             ball.Initialize(ballData);
             ball.ballBody.isKinematic = true; // Ensure it starts kinematic
             activeBalls.Add(ball);
@@ -122,7 +122,6 @@ public class Main : MonoBehaviour
         activeBall.ballBody.isKinematic = false;
         cameraController.SetTarget(activeBall.transform);
         StartCoroutine(FetchMovements());
-        displayWinners();
     }
 
     private void updateActiveBall()
@@ -172,6 +171,8 @@ public class Main : MonoBehaviour
                     {
                         finishedBalls.Add(activeBall);
                         activeBalls.Remove(activeBall);
+                        activeBall.GetComponent<Renderer>().enabled = false; // hide the ball
+                        activeBall.ballBody.isKinematic = true; // remove its physics
                     }
                     if (activeBalls.Count > 0)
                     {

@@ -46,7 +46,7 @@ public class CameraController : MonoBehaviour
         else
         {
             // Adjust the active ball's direction when the camera is locked and the mouse moves
-            angleChange += Input.GetAxis("Mouse X") * rotationSpeed;
+            angleChange -= Input.GetAxis("Mouse X") * rotationSpeed;
             target.GetComponent<Ball>().data.forwardDirection = angleChange;
         }
     }
