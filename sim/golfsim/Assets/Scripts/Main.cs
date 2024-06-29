@@ -19,29 +19,9 @@ TODO:
         Hole detection is already there and I have the red sphere drawn where the hole is on the course.
         I just need to cut a hole out of the course itself and add a flag at that position
         I also could make the whole thing a Hole prefab and add a Start method to the Course class which sets the hole to the prefab's position.
-
-    Game over overlay which displays the strokes of each player and has a button to go back to the menu scene
-        Create overlay prefab with canvas with a menu button and a text component
-        Update the displayWinners method:
-            void displayWinners()
-            {
-                string scoresString;
-                finishedBalls = finishedBalls.OrderBy(ball => ball.data.strokes).ToList(); // sort the balls by stroke order
-                foreach (var ball in finishedBalls)
-                {
-                    scoreString += $"{ball.data.playerName}\nStrokes: {ball.data.strokes}\n"; // could also be formatted in a table
-                }
-                I don't know how to force it to be on the screen directly 
-                I don't want it to be a camera pointing at it, I want it to be like a pause screen or something
-                GameObject overlay = Instantiate(overlayPrefab); 
-                Text text = overlay.GetComponent<TMP_Text>();
-                Button menuButton = overlay.transform.Find("Menu Button").GetComponent<Button>();
-                text.text = scoreString;
-                startGameButton.onClick.AddListener(() => { // No idea if this javascript syntax is valid or not
-                    SceneManager.LoadScene(0);
-                }); 
-
-            }        
+        Adding the hole itself is actually a bit more annoying than I initially thought because there's no easy way to modify models like that within Unity
+    Still need to tweak the way the ball feels
+    Not sure if the ball should always move in a perfectly straight line or if the angle should be used
 */
 public class Main : MonoBehaviour
 {
@@ -50,7 +30,6 @@ public class Main : MonoBehaviour
     private Scene course;
     public string MovementURL = "http://localhost:8000";
     public string ResetURL = "http://localhost:8000/reset";
-    public float forceScale = 1000f;
     public CameraController cameraController;
     public GameObject ballPrefab;
     public GameObject scoresPrefab;
@@ -58,6 +37,7 @@ public class Main : MonoBehaviour
     private Course currentCourse;
     private Camera cam;
     private bool gameOver = false;
+    private float forceScale = 15.0f;
 
     void OnGUI()
     {
@@ -82,12 +62,23 @@ public class Main : MonoBehaviour
         {
             GameObject arrow = ball.transform.Find("ArrowParent").gameObject;
             arrow.transform.localPosition = Vector3.zero;
-            arrow.transform.rotation = Quaternion.Euler(0, ball.data.forwardDirection, 0); 
+            arrow.transform.rotation = Quaternion.Euler(0, ball.data.forwardDirection, 0);
+            if (isBallInHole(ball))
+            {
+                finishedBalls.Add(ball);
+                activeBalls.Remove(ball);
+                ball.GetComponent<Renderer>().enabled = false; // hide the ball
+                ball.ballBody.isKinematic = true; // remove its physics
+            }
         }
     }
 
     void Start()
     {
+        // reset the ball's movements
+        UnityWebRequest movementRequest = UnityWebRequest.Get(MovementURL);
+        movementRequest.SendWebRequest();
+
         gameOver = false;
         cam = Camera.main; // could also do CameraController.cam and make it public in that class but this works too
         List<BallData> playerBallDataList = GameManager.Instance.GetPlayerBallData();
@@ -113,6 +104,7 @@ public class Main : MonoBehaviour
             arrow.transform.localPosition = Vector3.zero;
             ball.Initialize(ballData);
             ball.ballBody.isKinematic = true; // Ensure it starts kinematic
+            ball.ballBody.angularDrag = 0.6f;
             activeBalls.Add(ball);
         }
         int randomIndex = Random.Range(0, activeBalls.Count);
@@ -152,8 +144,9 @@ public class Main : MonoBehaviour
             else
             {
                 bool didMove = ProcessMovements(movementRequest.downloadHandler.text);
-                if (didMove && activeBall.ballBody.velocity.x == 0 && activeBall.ballBody.velocity.y == 0 && activeBall.ballBody.velocity.z == 0) // wait for ball to stop moving before reseting
+                if (didMove) // wait for ball to stop moving before reseting
                 {
+                    yield return new WaitUntil(() => activeBall.ballBody.velocity.magnitude < 0.01f);
                     // Send reset request
                     UnityWebRequest resetRequest = UnityWebRequest.Get(ResetURL);
                     yield return resetRequest.SendWebRequest(); // should update this to reset when the ball has stopped moving
@@ -165,14 +158,6 @@ public class Main : MonoBehaviour
                     {
                         Debug.Log("Successfully reset. Ball is ready to be tracked");
                         didMove = false;
-                    }
-                    // check if ball is in hole
-                    if (isBallInHole())
-                    {
-                        finishedBalls.Add(activeBall);
-                        activeBalls.Remove(activeBall);
-                        activeBall.GetComponent<Renderer>().enabled = false; // hide the ball
-                        activeBall.ballBody.isKinematic = true; // remove its physics
                     }
                     if (activeBalls.Count > 0)
                     {
@@ -204,7 +189,7 @@ public class Main : MonoBehaviour
         string direction = json["status"]["direction"][0];
         float angle = json["status"]["angle"].AsFloat;
         float rise = json["status"]["rise"].AsFloat;
-        if (speed != 0 && direction != "None") // non default values so ball has actually moved 
+        if (speed != 0 && direction != "None" && angle != 0 && rise != 0) // non default values so ball has actually moved and check lastResult to ensure ball only moves once
         {
             Debug.Log($"Speed: {speed}, Direction: {direction}, Angle: {angle}, Rise: {rise}");
             MoveBall(direction, speed, angle, rise);
@@ -212,24 +197,30 @@ public class Main : MonoBehaviour
         }
         return false;
     }
-    private bool isBallInHole()
+    private bool isBallInHole(Ball ball)
     // Check if ball is close enough to hole
     {
-        float distanceToHole = Vector3.Distance(activeBall.transform.position, currentCourse.hole); // Should also check the Z to make sure it's in the hole. Not needed if the course is flat though
-        return distanceToHole < 0.5f;
+        float distanceToHole = Vector3.Distance(ball.transform.position, currentCourse.hole); // Should also check the Z to make sure it's in the hole. Not needed if the course is flat though
+        return distanceToHole < 1.5f;
 
     }
     private void MoveBall(string direction, float speed, float angle, float rise)
     // Applies forces
     {
-        // apply force in the ball's forwardDirection
-        float radians = activeBall.data.forwardDirection * Mathf.Deg2Rad;
-        Vector3 force = new Vector3(Mathf.Sin(radians), 0, Mathf.Cos(radians));
+        Vector3 forward = Quaternion.Euler(0, activeBall.data.forwardDirection, 0) * Vector3.forward;
+        Debug.Log($"Initial Forward Vector: {forward}");
+        // Rotate the forward direction by the additional angle
+        //Vector3 directionForce = Quaternion.Euler(0, angle, 0) * forward;
+        //Debug.Log($"Direction Force after Angle: {directionForce}");
 
-        force = Quaternion.Euler(0, angle, 0) * force;
-        force *= speed * forceScale;
-        force.y = rise * (forceScale / 2);
-        Debug.Log($"Force: {force}");
+        // Scale the direction vector by the speed
+        Vector3 force = forward * (speed * forceScale);
+        // Add the vertical component
+        // force.y = rise * (forceScale / 2);
+
+        // Debug information
+        Debug.Log($"Speed: {speed}");
+        Debug.Log($"Final Force: {force}");
 
         activeBall.ballBody.constraints = RigidbodyConstraints.None;
         activeBall.ballBody.AddForce(force, ForceMode.Impulse);

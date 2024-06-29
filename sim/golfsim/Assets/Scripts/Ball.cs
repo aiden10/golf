@@ -17,8 +17,8 @@ public class Ball : MonoBehaviour
         }
         if (arrow == null)
         {
-            arrow = transform.Find("Arrow").gameObject;
-            arrow.transform.position = new Vector3(0.0f, 0.0f, 0.0f); // This moves the arrow to the same position as the ball
+            arrow = transform.Find("ArrowParent").gameObject;
+            arrow.transform.position = Vector3.zero; 
         }
     }
 

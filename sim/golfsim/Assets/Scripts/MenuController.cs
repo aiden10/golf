@@ -101,7 +101,7 @@ public class MenuController : MonoBehaviour
                 playerName = playerName,
                 color = playerColor,
                 strokes = 0,
-                forwardDirection = 90.0f
+                forwardDirection = 0.0f
             };
             playerBallDataList.Add(playerBallData); 
         }

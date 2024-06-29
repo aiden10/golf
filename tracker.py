@@ -5,8 +5,8 @@ import math
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
-# url = 'http://192.168.111.63:8080/video'
-url = 'http://10.0.0.223:8080/video'
+url = 'http://192.168.111.63:8080/video'
+# url = 'http://10.0.0.223:8080/video'
 
 app = FastAPI()
 prev_ball = None
@@ -58,7 +58,7 @@ def process(img):
     mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5, 5), np.uint8))
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
     # mask = cv2.resize(mask, (1920, 1080))
-    cv2.imshow("mask", mask)
+    # cv2.imshow("mask", mask)
     return mask
 
 def track_ball(img):
@@ -137,8 +137,8 @@ def capture_video():
                     # if it redraws the circle in a slightly different position, also don't want that to count
                     # instead of just comparing the previous ball position, I could try comparing the previous n positions
                     # but that would really only be necessary if the tracking is bad
-                    min_x_displacement = (ball_radius * 0.1)
-                    min_y_displacement = (ball_radius * 0.1)
+                    min_x_displacement = (ball_radius * 0.05)
+                    min_y_displacement = (ball_radius * 0.05)
                     x_displacement = abs(prev_ball_x - ball_x)
                     y_displacement = abs(prev_ball_y - ball_y)
                     max_radius_difference = 15
