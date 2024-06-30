@@ -37,7 +37,7 @@ public class Main : MonoBehaviour
     private Course currentCourse;
     private Camera cam;
     private bool gameOver = false;
-    private float forceScale = 15.0f;
+    private float forceScale = 20.0f;
 
     void OnGUI()
     {
@@ -58,6 +58,7 @@ public class Main : MonoBehaviour
 
     void Update()
     {
+        List<Ball> ballsToRemove = new List<Ball>();
         foreach (Ball ball in activeBalls)
         {
             GameObject arrow = ball.transform.Find("ArrowParent").gameObject;
@@ -66,10 +67,20 @@ public class Main : MonoBehaviour
             if (isBallInHole(ball))
             {
                 finishedBalls.Add(ball);
-                activeBalls.Remove(ball);
+                ballsToRemove.Add(ball);
                 ball.GetComponent<Renderer>().enabled = false; // hide the ball
                 ball.ballBody.isKinematic = true; // remove its physics
+                updateActiveBall();
             }
+        }
+        foreach (Ball ball in ballsToRemove) // remove each ball that was in the hole from activeBalls
+        {
+            activeBalls.Remove(ball);
+        }
+        if (activeBalls.Count == 0)
+        {
+            gameOver = true;
+            displayWinners();
         }
     }
 
@@ -104,7 +115,7 @@ public class Main : MonoBehaviour
             arrow.transform.localPosition = Vector3.zero;
             ball.Initialize(ballData);
             ball.ballBody.isKinematic = true; // Ensure it starts kinematic
-            ball.ballBody.angularDrag = 0.6f;
+            ball.ballBody.angularDrag = 0.45f;
             activeBalls.Add(ball);
         }
         int randomIndex = Random.Range(0, activeBalls.Count);
@@ -125,6 +136,7 @@ public class Main : MonoBehaviour
         {
             activeBall = activeBalls[(index + 1) % activeBalls.Count];
             activeBall.data.isTurn = true;
+            activeBall.ballBody.isKinematic = false;
             Debug.Log($"New Active Ball: {activeBall.data.playerName}");
             cameraController.SetTarget(activeBall.transform);
         }
@@ -142,37 +154,47 @@ public class Main : MonoBehaviour
                 Debug.LogError(movementRequest.error);
             }
             else
-            {
-                bool didMove = ProcessMovements(movementRequest.downloadHandler.text);
-                if (didMove) // wait for ball to stop moving before reseting
+            { 
+                if (!ballMoving(activeBall)) // Only move the ball if it's not moving
                 {
-                    yield return new WaitUntil(() => activeBall.ballBody.velocity.magnitude < 0.01f);
-                    // Send reset request
-                    UnityWebRequest resetRequest = UnityWebRequest.Get(ResetURL);
-                    yield return resetRequest.SendWebRequest(); // should update this to reset when the ball has stopped moving
-                    if (resetRequest.result == UnityWebRequest.Result.ConnectionError || resetRequest.result == UnityWebRequest.Result.ProtocolError)
+                    bool didMove = ProcessMovements(movementRequest.downloadHandler.text);
+                    if (didMove)
                     {
-                        Debug.LogError(resetRequest.error);
+                        yield return new WaitForSeconds(1); // Wait a second for the force to be applied
+                        yield return StartCoroutine(WaitForBallToStop()); // Wait for ball to stop
+                        // Send reset request
+                        UnityWebRequest resetRequest = UnityWebRequest.Get(ResetURL);
+                        yield return resetRequest.SendWebRequest(); // should update this to reset when the ball has stopped moving
+                        if (resetRequest.result == UnityWebRequest.Result.ConnectionError || resetRequest.result == UnityWebRequest.Result.ProtocolError)
+                        {
+                            Debug.LogError(resetRequest.error);
+                        }
+                        else
+                        {
+                            Debug.Log("Successfully reset. Ball is ready to be tracked");
+                        }
+                        if (activeBalls.Count > 0)
+                        {
+                            updateActiveBall();
+                        }
                     }
-                    else
-                    {
-                        Debug.Log("Successfully reset. Ball is ready to be tracked");
-                        didMove = false;
-                    }
-                    if (activeBalls.Count > 0)
-                    {
-                        updateActiveBall();
-                    }
-                    else
-                    {
-                        gameOver = true;
-                        displayWinners();
-                    }
-                }
+                } 
             }
-
             yield return new WaitForSeconds(2);
         }
+    }
+
+    IEnumerator WaitForBallToStop() // Basically just loops until the ball stops moving
+    {
+        while (activeBall.ballBody.velocity.sqrMagnitude > 0.01f) // using sqrMagnitude for efficiency
+        {
+            yield return null; // wait for the next frame and check again
+        }
+    }
+    
+    private bool ballMoving(Ball ball)
+    {
+        return !(ball.ballBody.velocity.x == 0 && ball.ballBody.velocity.y == 0 && ball.ballBody.velocity.z == 0);
     }
 
     private bool ProcessMovements(string jsonString)
@@ -189,7 +211,7 @@ public class Main : MonoBehaviour
         string direction = json["status"]["direction"][0];
         float angle = json["status"]["angle"].AsFloat;
         float rise = json["status"]["rise"].AsFloat;
-        if (speed != 0 && direction != "None" && angle != 0 && rise != 0) // non default values so ball has actually moved and check lastResult to ensure ball only moves once
+        if (speed != 0 && direction != "None") // non default values so ball has actually moved and check lastResult to ensure ball only moves once
         {
             Debug.Log($"Speed: {speed}, Direction: {direction}, Angle: {angle}, Rise: {rise}");
             MoveBall(direction, speed, angle, rise);

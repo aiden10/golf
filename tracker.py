@@ -13,7 +13,7 @@ prev_ball = None
 ball_movements = []
 frame_count = 0
 still_frame_count = 0
-capture_duration = 80
+capture_duration = 40
 still_duration = 60  # time tracked ball must be still for  
 ready = False
 moving = False
@@ -41,15 +41,15 @@ def process(img):
     upper = np.array([upper_h, upper_s, upper_v], dtype=np.uint8)
     """
     hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    lower_h = cv2.getTrackbarPos('LowerH', 'Trackbars')
-    lower_s = cv2.getTrackbarPos('LowerS', 'Trackbars')
-    lower_v = cv2.getTrackbarPos('LowerV', 'Trackbars')
-    upper_h = cv2.getTrackbarPos('UpperH', 'Trackbars')
-    upper_s = cv2.getTrackbarPos('UpperS', 'Trackbars')
-    upper_v = cv2.getTrackbarPos('UpperV', 'Trackbars')
+    # lower_h = cv2.getTrackbarPos('LowerH', 'Trackbars')
+    # lower_s = cv2.getTrackbarPos('LowerS', 'Trackbars')
+    # lower_v = cv2.getTrackbarPos('LowerV', 'Trackbars')
+    # upper_h = cv2.getTrackbarPos('UpperH', 'Trackbars')
+    # upper_s = cv2.getTrackbarPos('UpperS', 'Trackbars')
+    # upper_v = cv2.getTrackbarPos('UpperV', 'Trackbars')
 
-    lower = np.array([lower_h, lower_s, lower_v], dtype=np.uint8)
-    upper = np.array([upper_h, upper_s, upper_v], dtype=np.uint8)
+    # lower = np.array([lower_h, lower_s, lower_v], dtype=np.uint8)
+    # upper = np.array([upper_h, upper_s, upper_v], dtype=np.uint8)
     lower_pink = np.array([0, 130, 142], dtype=np.uint8)
     upper_pink = np.array([180, 255, 255], dtype=np.uint8)
 
@@ -131,17 +131,21 @@ def capture_video():
                     prev_ball_x, prev_ball_y, prev_ball_radius = prev_ball[0][0], prev_ball[0][1], prev_ball[1] 
                     
                     # if it detects another circle somewhere else, don't want that to count
-                    max_x_displacement = (ball_radius * 100) # with good tracking this almost isn't needed
-                    max_y_displacement = (ball_radius * 100)
+                    # max_x_displacement = (ball_radius * 1000) # with good tracking this almost isn't needed
+                    # max_y_displacement = (ball_radius * 1000)
                     
                     # if it redraws the circle in a slightly different position, also don't want that to count
                     # instead of just comparing the previous ball position, I could try comparing the previous n positions
                     # but that would really only be necessary if the tracking is bad
-                    min_x_displacement = (ball_radius * 0.05)
-                    min_y_displacement = (ball_radius * 0.05)
+                    # min_x_displacement = (ball_radius * 0.1)
+                    # min_y_displacement = (ball_radius * 0.1)
+                    min_x_displacement = 3
+                    min_y_displacement = 3
+                    max_x_displacement = 5000
+                    max_y_displacement = 5000
                     x_displacement = abs(prev_ball_x - ball_x)
                     y_displacement = abs(prev_ball_y - ball_y)
-                    max_radius_difference = 15
+                    max_radius_difference = 30
                     radius_difference = abs(prev_ball_radius - ball_radius)
 
                     if (x_displacement > min_x_displacement and x_displacement < max_x_displacement and
@@ -280,14 +284,14 @@ def start_server():
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
 if __name__ == "__main__":
-    cv2.namedWindow('Trackbars')
-    cv2.resizeWindow('Trackbars', 200, 250)
-    cv2.createTrackbar('LowerH', 'Trackbars', 0, 180, nothing)
-    cv2.createTrackbar('LowerS', 'Trackbars', 0, 255, nothing)
-    cv2.createTrackbar('LowerV', 'Trackbars', 200, 255, nothing)
-    cv2.createTrackbar('UpperH', 'Trackbars', 180, 180, nothing)
-    cv2.createTrackbar('UpperS', 'Trackbars', 55, 255, nothing)
-    cv2.createTrackbar('UpperV', 'Trackbars', 255, 255, nothing)
+    # cv2.namedWindow('Trackbars')
+    # cv2.resizeWindow('Trackbars', 200, 250)
+    # cv2.createTrackbar('LowerH', 'Trackbars', 0, 180, nothing)
+    # cv2.createTrackbar('LowerS', 'Trackbars', 0, 255, nothing)
+    # cv2.createTrackbar('LowerV', 'Trackbars', 200, 255, nothing)
+    # cv2.createTrackbar('UpperH', 'Trackbars', 180, 180, nothing)
+    # cv2.createTrackbar('UpperS', 'Trackbars', 55, 255, nothing)
+    # cv2.createTrackbar('UpperV', 'Trackbars', 255, 255, nothing)
 
     threading.Thread(target=start_server, daemon=True).start()
 
