@@ -3,6 +3,8 @@
 ![cut1-ezgif com-optimize](https://github.com/aiden10/golf/assets/51337166/12798f5d-6bfc-4bc3-aca4-e01b9f410a8f)
 
 ## About
+Full Demo: https://streamable.com/1dopid
+
 This is an attempt to create a mini golf simulator using OpenCV for ball tracking and Unity to translate the recorded movements into a virtual environment.
 After a ball is detected, the movements are tracked and the speed, angle, direction, and rise are calculated. Those values are then served via a FastAPI endpoint which the Unity side constantly fetches.
 
